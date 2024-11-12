@@ -9,25 +9,26 @@ from array import *
 gettext.install("gimp20-python", gimp.locale_directory, unicode=True)
 
 def laser_power(min, max, pixel, threshold, intensity):
-  if 255 - pixel < threshold:
+  if 255 - pixel < threshold: 
     return 0
   return min + (max - min) * (255 - pixel) * intensity / 25500
 
 
 def distance(x1, y1, x2, y2):
   return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
-
+  
 
 def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
                    minPower, maxPower, minRapid, threshold, intensity) :
+  
   dlg = gtk.FileChooserDialog("Pick a file", None,
                               gtk.FILE_CHOOSER_ACTION_SAVE,
                               (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OK, gtk.RESPONSE_OK))
   dlg.set_do_overwrite_confirmation(True)
   ok = dlg.run()
   filename = dlg.get_filename()
-  dlg.destroy()
-
+  dlg.destroy()  
+  
   width = int(outWidth / pixSize)
   height = int(timg.height * width / timg.width)
 
@@ -50,9 +51,9 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
   pdb.gimp_progress_init('Generating GCode...', None)
 
   with open(filename, 'w+') as f:
-    if mcode:
+    if mcode: 
       f.write('G21G90\nM4F%d\n' % feedRate)
-    else:
+    else: 
       f.write('G21G90\nM3F%d\n' % feedRate)
 
     forward = True
@@ -76,7 +77,7 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
           if not end or not rapid:
             if rapid and lastX is not None:
               dist = distance(x, y, lastX, lastY) * pixSize
-              if dist < minRapid:
+              if dist < minRapid: 
                 rapid = False
 
             lastX = x
