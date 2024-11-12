@@ -14,12 +14,8 @@ def laser_power(min, max, pixel, threshold, intensity):
   return min + (max - min) * (255 - pixel) * intensity / 25500
 
 
-def distance(x1, y1, x2, y2):
-  return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
-  
-
 def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
-                   minPower, maxPower, minRapid, threshold, intensity) :
+                   minPower, maxPower, threshold, intensity) :
   
   dlg = gtk.FileChooserDialog("Pick a file", None,
                               gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -55,9 +51,10 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
       f.write('G21G90\nM4F%d\n' % feedRate)
     else: 
       f.write('G21G90\nM3F%d\n' % feedRate)
+    # todo: test this, possible fix for random black line when starting
+    # f.write('G1X0Y0S0\n')
 
     forward = True
-    lastX = lastY = None
 
     for row in range(height):
       y = row
@@ -71,20 +68,8 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
         power = laser_power(minPower, maxPower, pixel, threshold, intensity)
         end = col == width - 1
 
-        if col and power != lastPower or end:
-          rapid = lastPower == 0
-
-          if not end or not rapid:
-            if rapid and lastX is not None:
-              dist = distance(x, y, lastX, lastY) * pixSize
-              if dist < minRapid: 
-                rapid = False
-
-            lastX = x
-            lastY = y
-
-            f.write('G%dX%0.2fY%0.2fS%d\n' % (
-              0 if rapid else 1, x * pixSize, y * pixSize, lastPower))
+        if not end and col and power != lastPower or end:
+          f.write('G1X%0.2fY%0.2fS%d\n' % (x * pixSize, y * pixSize, lastPower))
 
         lastPower = power
 
@@ -114,7 +99,6 @@ register(
     (PF_FLOAT,  'feedRate',  'Feed rate in mm/minute', 900),
     (PF_INT,    'minPower',  'Mimimum LASER S-value', 2),
     (PF_INT,    'maxPower',  'Maximum LASER S-value', 50),
-    (PF_FLOAT,  'minRapid',  'Minimum rapid distance (mm)', 10),
     (PF_INT,    'threshold', 'Minimum pixel value', 20),
     (PF_SLIDER, 'intensity', 'Laser intensity (%)', 100, [0, 100, 1]),
   ],
