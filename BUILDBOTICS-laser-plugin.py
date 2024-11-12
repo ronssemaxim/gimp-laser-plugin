@@ -8,14 +8,21 @@ from array import *
 
 gettext.install("gimp20-python", gimp.locale_directory, unicode=True)
 
-def laser_power(min_val, max_val, pixel, threshold, intensity):
+def laser_power(min_val, max_val, pixel, threshold):
+  """
+  Calculate value of the laser output based on:
+  min_val: (int) minimum value to use, even while moving the head
+  max_val: (int) maximum value to use, meaning where the darkest area will be
+  pixel: brightness of the current pixel
+  threshold: skip the pixel if it is lower than the threshold
+  """
   if 255 - pixel < threshold: 
     return 0
-  return min_val + (max_val - min_val) * (255 - pixel) * intensity / 25500
+  return min_val + (max_val - min_val) * (255 - pixel) / 255
 
 
 def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
-                   minPower, maxPower, threshold, intensity) :
+                   minPower, maxPower, threshold) :
   
   dlg = gtk.FileChooserDialog("Pick a file", None,
                               gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -62,7 +69,7 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
       for col in range(width):
         x = col if forward else (width - col - 1)
         pixel = pixels[width * y + x]
-        power = laser_power(minPower, maxPower, pixel, threshold, intensity)
+        power = laser_power(minPower, maxPower, pixel, threshold)
         end = col == width - 1
 
         if not end and col and power != lastPower or end:
@@ -97,7 +104,6 @@ register(
     (PF_INT,    'minPower',  'Mimimum LASER S-value', 2),
     (PF_INT,    'maxPower',  'Maximum LASER S-value', 50),
     (PF_INT,    'threshold', 'Minimum pixel value', 20),
-    (PF_SLIDER, 'intensity', 'Laser intensity (%)', 100, [0, 100, 1]),
   ],
   [],
   image_to_gcode,
