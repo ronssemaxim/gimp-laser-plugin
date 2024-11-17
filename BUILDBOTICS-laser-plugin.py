@@ -66,18 +66,38 @@ def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
 
       pdb.gimp_progress_update(float(row) / height)
 
+      # save all values we will print for this row
+      row_vals = []
       for col in range(width):
         x = col if forward else (width - col - 1)
         pixel = pixels[width * y + x]
         power = laser_power(minPower, maxPower, pixel, threshold)
         end = col == width - 1
 
+
         if not end and col and power != lastPower or end:
-          f.write('G1X%0.2fY%0.2fS%d\n' % (x * pixSize, y * pixSize, lastPower))
+          # add to values to add
+          row_vals.append({"x": x, "power": lastPower})
 
         lastPower = power
 
+      
+      # skip row if its only 0
+      if sum([item["power"] for item in row_vals]) == 0:
+        continue
+
+      # only now do we swap the direction, in case the rows are empty we dont need to swap
       forward = not forward
+      
+      # when going backwards, skip the rest (last in order) of the line if it is empty
+      if len(row_vals) > 1 and not forward and row_vals[-1]["power"] == 0:
+        row_vals[-1]["x"] = row_vals[-2]["x"] + pixSize
+      # same for forwards: skip the beginning of the line if it is empty
+      if len(row_vals) > 1 and forward and row_vals[0]["power"] == 0:
+        row_vals[0]["x"] = row_vals[1]["x"] - pixSize
+
+      [f.write('G1X%0.2fY%0.2fS%d\n' % (item["x"] * pixSize, y * pixSize, item["power"])) for item in row_vals]
+
 
     f.write('M5S0\n')
 
